@@ -1,7 +1,6 @@
-/* K.M. Entrümpelung & Transport — Script
-   Each feature is wrapped in its own try/catch so a problem
+/* Each feature is wrapped in its own try/catch so a problem
    in one block (e.g. a missing element) can never stop the
-   rest of the page's interactivity from working.*/
+   rest of the page's interactivity from working. */
 
 function safeRun(label, fn) {
   try { fn(); } catch (err) { console.error(`[script.js] "${label}" failed:`, err); }
@@ -114,47 +113,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  /* file upload chips (contact form) */
-  const MAX_FILE_MB = 5;
-  safeRun('file upload chips', () => {
-    const input = document.getElementById('attachment');
-    const list = document.getElementById('fileList');
-    if (!input || !list) return;
-
-    const render = () => {
-      list.innerHTML = '';
-      Array.from(input.files).forEach((file, idx) => {
-        const chip = document.createElement('div');
-        const oversize = file.size > MAX_FILE_MB * 1024 * 1024;
-        chip.className = 'file-chip' + (oversize ? ' oversize' : '');
-        const label = document.createElement('span');
-        label.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.setAttribute('aria-label', `${file.name} entfernen`);
-        removeBtn.textContent = '✕';
-        removeBtn.addEventListener('click', () => {
-          // FileList is read-only, so rebuild it via DataTransfer minus this item
-          const dt = new DataTransfer();
-          Array.from(input.files).forEach((f, i) => { if (i !== idx) dt.items.add(f); });
-          input.files = dt.files;
-          render();
-        });
-        chip.appendChild(label);
-        chip.appendChild(removeBtn);
-        list.appendChild(chip);
-      });
-    };
-
-    input.addEventListener('change', render);
-  });
-
-  /* CONTACT FORM — EmailJS integration*/
+  /*CONTACT FORM — EmailJS integration */
   safeRun('contact form / EmailJS', () => {
-    const EMAILJS_PUBLIC_KEY           = '6kRdY9kdSkDABAxEE';
-    const EMAILJS_SERVICE_ID           = 'service_pwlblzs';
-    const EMAILJS_TEMPLATE_ID_NOTIFY   = 'template_ynxzz8m';
-    const EMAILJS_TEMPLATE_ID_AUTOREPLY = 'template_yekf4kb';
+    const EMAILJS_PUBLIC_KEY            = 'YOUR_PUBLIC_KEY';
+    const EMAILJS_SERVICE_ID            = 'YOUR_SERVICE_ID';
+    const EMAILJS_TEMPLATE_ID_NOTIFY    = 'YOUR_NOTIFY_TEMPLATE_ID';
+    const EMAILJS_TEMPLATE_ID_AUTOREPLY = 'YOUR_AUTOREPLY_TEMPLATE_ID';
 
     if (window.emailjs) {
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
@@ -162,25 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const form = document.getElementById('contactForm');
     const status = document.getElementById('formStatus');
-    const attachmentInput = document.getElementById('attachment');
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-
-      // client-side guard against oversized files before sending
-      if (attachmentInput && attachmentInput.files.length) {
-        const tooBig = Array.from(attachmentInput.files).some(f => f.size > MAX_FILE_MB * 1024 * 1024);
-        if (tooBig) {
-          status.textContent = `Mindestens eine Datei ist größer als ${MAX_FILE_MB} MB. Bitte entfernen oder verkleinern.`;
-          status.className = 'form-status error';
-          return;
-        }
-      }
-
       status.textContent = 'Wird gesendet ...';
       status.className = 'form-status';
 
-      const notice = {
+      const params = {
         name: form.name.value,
         phone: form.phone.value,
         email: form.email.value,
@@ -194,16 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // sendForm reads every field directly from the DOM, which is
-      // required so file inputs are picked up and attached.
-      emailjs.sendForm(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID_NOTIFY, form)
-        .then(() => emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID_AUTOREPLY, notice))
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID_NOTIFY, params)
+        .then(() => emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID_AUTOREPLY, params))
         .then(() => {
           status.textContent = 'Vielen Dank! Ihre Anfrage wurde erfolgreich gesendet. Wir melden uns schnellstmöglich bei Ihnen.';
           status.className = 'form-status success';
           form.reset();
-          const list = document.getElementById('fileList');
-          if (list) list.innerHTML = '';
         })
         .catch((err) => {
           console.error('EmailJS error:', err);
